@@ -122,12 +122,12 @@
     <h2>Registrar movimiento</h2>
     <button class="btn-dorado" onclick="iniciarEscaneo()">📷 Escanear código QR</button>
     <div id="qr-reader" style="display:none;"></div>
-    <label>O escribe la ubicación de la caja manualmente</label>
-    <input type="text" id="input-codigo" placeholder="Ej. L1-R3-C1" autocapitalize="characters">
+    <label>O escribe la ubicación, nombre o código</label>
+    <input type="text" id="input-codigo" placeholder="Ej. L1-R3-C1, bisagra, o código" autocapitalize="characters">
     <button class="btn-secundario" onclick="buscarProductoManual()">Buscar</button>
 
     <div id="lista-productos-caja" style="display:none; margin-top:14px;">
-      <label style="margin-top:0;">Productos en esta caja — toca el que vas a usar</label>
+      <label style="margin-top:0;">Resultados — toca el que vas a usar</label>
       <div id="lista-productos-items"></div>
     </div>
 
