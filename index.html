@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inventario ID">
+<title>Inventario Integral Design</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{
+    --negro:#1a1a1a; --dorado:#b08d57; --gris:#f2f0ec; --gris-borde:#ddd8cf;
+    --verde:#2e7d32; --rojo:#c62828; --blanco:#fff;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--gris); color:var(--negro);
+    padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+    min-height:100vh;
+  }
+  header{
+    background:var(--negro); color:var(--blanco); padding:16px 20px;
+    display:flex; justify-content:space-between; align-items:center;
+    position:sticky; top:0; z-index:10;
+  }
+  header h1{font-size:16px; margin:0; font-weight:600; letter-spacing:.5px;}
+  header .user-info{font-size:12px; color:var(--dorado);}
+  .screen{display:none; padding:20px; max-width:480px; margin:0 auto;}
+  .screen.active{display:block;}
+  .card{background:var(--blanco); border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  h2{font-size:18px; margin:0 0 16px;}
+  label{display:block; font-size:13px; font-weight:600; margin:14px 0 6px; color:#555;}
+  input, select, textarea{
+    width:100%; padding:12px 14px; border:1px solid var(--gris-borde); border-radius:10px;
+    font-size:16px; background:var(--blanco); color:var(--negro);
+  }
+  textarea{resize:vertical; min-height:60px;}
+  button{
+    width:100%; padding:14px; border:none; border-radius:10px; font-size:16px; font-weight:600;
+    cursor:pointer; margin-top:16px;
+  }
+  .btn-primary{background:var(--negro); color:var(--blanco);}
+  .btn-dorado{background:var(--dorado); color:var(--blanco);}
+  .btn-secundario{background:var(--blanco); color:var(--negro); border:1px solid var(--gris-borde);}
+  .btn-verde{background:var(--verde); color:var(--blanco);}
+  .btn-rojo{background:var(--rojo); color:var(--blanco);}
+  button:disabled{opacity:.5;}
+  .pin-dots{display:flex; justify-content:center; gap:14px; margin:24px 0;}
+  .pin-dot{width:16px; height:16px; border-radius:50%; border:2px solid var(--dorado); background:transparent;}
+  .pin-dot.filled{background:var(--dorado);}
+  .pin-pad{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .pin-pad button{
+    aspect-ratio:1; border-radius:50%; font-size:22px; background:var(--blanco);
+    border:1px solid var(--gris-borde); margin:0; color:var(--negro);
+  }
+  .error-msg{color:var(--rojo); font-size:14px; text-align:center; margin-top:10px; min-height:18px;}
+  .success-msg{color:var(--verde); font-size:14px; text-align:center; margin-top:10px;}
+  .tipo-toggle{display:flex; gap:10px; margin-top:14px;}
+  .tipo-toggle button{margin:0; padding:12px;}
+  .tipo-toggle button.selected.entrada{background:var(--verde); color:var(--blanco);}
+  .tipo-toggle button.selected.salida{background:var(--rojo); color:var(--blanco);}
+  .tipo-toggle button:not(.selected){background:var(--blanco); border:1px solid var(--gris-borde);}
+  #qr-reader{width:100%; border-radius:10px; overflow:hidden; margin-top:12px;}
+  .producto-info{background:var(--gris); border-radius:10px; padding:14px; margin-top:14px;}
+  .producto-info .nombre{font-weight:700; font-size:16px;}
+  .producto-info .detalle{font-size:13px; color:#666; margin-top:4px;}
+  .menu-btn{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--blanco); border-radius:14px; padding:20px; margin-bottom:14px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08); border:none; width:100%; text-align:left;
+  }
+  .menu-btn span{font-size:16px; font-weight:600;}
+  .menu-btn .flecha{color:var(--dorado); font-size:20px;}
+  .link-btn{background:none; border:none; color:#888; font-size:14px; text-decoration:underline; margin-top:20px;}
+  .loading{text-align:center; padding:20px; color:#888;}
+</style>
+</head>
+<body>
+
+<header id="app-header" style="display:none;">
+  <h1>INVENTARIO INTEGRAL DESIGN</h1>
+  <div class="user-info" id="user-info"></div>
+</header>
+
+<!-- LOGIN -->
+<div class="screen active" id="screen-login">
+  <div class="card" style="margin-top:60px; text-align:center;">
+    <h2>Inventario Integral Design</h2>
+    <p style="color:#888; font-size:14px;">Ingresa tu PIN</p>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad" id="pin-pad">
+      <button data-n="1">1</button><button data-n="2">2</button><button data-n="3">3</button>
+      <button data-n="4">4</button><button data-n="5">5</button><button data-n="6">6</button>
+      <button data-n="7">7</button><button data-n="8">8</button><button data-n="9">9</button>
+      <button data-n="borrar">⌫</button><button data-n="0">0</button><button data-n="ok">OK</button>
+    </div>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- MENU -->
+<div class="screen" id="screen-menu">
+  <button class="menu-btn" onclick="irA('movimiento')"><span>Registrar entrada / salida</span><span class="flecha">›</span></button>
+  <button class="menu-btn" id="btn-agregar-producto" onclick="irA('agregar')" style="display:none;"><span>Agregar producto nuevo</span><span class="flecha">›</span></button>
+  <button class="link-btn" onclick="cerrarSesion()">Cerrar sesión</button>
+</div>
+
+<!-- MOVIMIENTO -->
+<div class="screen" id="screen-movimiento">
+  <div class="card">
+    <h2>Registrar movimiento</h2>
+    <button class="btn-dorado" onclick="iniciarEscaneo()">📷 Escanear código QR</button>
+    <div id="qr-reader" style="display:none;"></div>
+    <label>O escribe el código manualmente</label>
+    <input type="text" id="input-codigo" placeholder="Código del producto" autocapitalize="characters">
+    <button class="btn-secundario" onclick="buscarProductoManual()">Buscar</button>
+
+    <div id="producto-encontrado" style="display:none;">
+      <div class="producto-info">
+        <div class="nombre" id="prod-nombre"></div>
+        <div class="detalle" id="prod-detalle"></div>
+      </div>
+
+      <label>Tipo de movimiento</label>
+      <div class="tipo-toggle">
+        <button type="button" id="btn-entrada" class="entrada" onclick="seleccionarTipo('Entrada')">Entrada</button>
+        <button type="button" id="btn-salida" class="salida" onclick="seleccionarTipo('Salida')">Salida</button>
+      </div>
+
+      <label>Cantidad</label>
+      <input type="number" id="input-cantidad" inputmode="numeric" min="1">
+
+      <label>Proyecto</label>
+      <select id="select-proyecto"></select>
+
+      <label>Observaciones (opcional)</label>
+      <textarea id="input-observaciones"></textarea>
+
+      <button class="btn-primary" onclick="confirmarMovimiento()">Confirmar movimiento</button>
+    </div>
+    <div class="error-msg" id="mov-error"></div>
+    <div class="success-msg" id="mov-success"></div>
+    <button class="link-btn" onclick="irA('menu')">‹ Volver al menú</button>
+  </div>
+</div>
+
+<!-- AGREGAR PRODUCTO -->
+<div class="screen" id="screen-agregar">
+  <div class="card">
+    <h2>Agregar producto nuevo</h2>
+    <label>Código</label>
+    <input type="text" id="np-codigo" autocapitalize="characters">
+    <label>Nombre</label>
+    <input type="text" id="np-nombre">
+    <label>Categoría</label>
+    <select id="np-categoria"></select>
+    <label>Unidad</label>
+    <select id="np-unidad"></select>
+    <label>Ubicación (ej. L1-R2-C1)</label>
+    <input type="text" id="np-ubicacion" autocapitalize="characters">
+    <label>Inventario inicial</label>
+    <input type="number" id="np-inv-inicial" inputmode="numeric" min="0">
+    <label>Inventario mínimo</label>
+    <input type="number" id="np-inv-minimo" inputmode="numeric" min="0">
+    <button class="btn-verde" onclick="confirmarAgregarProducto()">Agregar al inventario</button>
+    <div class="error-msg" id="np-error"></div>
+    <div class="success-msg" id="np-success"></div>
+    <button class="link-btn" onclick="irA('menu')">‹ Volver al menú</button>
+  </div>
+</div>
+
+<script>
+// ⚠️ PEGA AQUÍ LA URL DE TU APPS SCRIPT (termina en /exec)
+const API_URL = "https://script.google.com/macros/s/AKfycbwy21WDMYxyWsCB_9ObIj_P_YAf98t2ZsnFjAxzqXk0yZEXBzkA8-iaXPzrZenQ0-Bn/exec";
+
+let sesion = null;
+let pinActual = "";
+let productoActual = null;
+let tipoMovimiento = null;
+let html5QrCode = null;
+
+async function llamarAPI(payload) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+function irA(pantalla) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + pantalla).classList.add('active');
+  if (pantalla === 'movimiento') resetMovimiento();
+  if (pantalla === 'agregar') resetAgregar();
+}
+
+// ---------- LOGIN ----------
+document.getElementById('pin-pad').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const n = btn.dataset.n;
+  if (n === 'borrar') { pinActual = pinActual.slice(0, -1); }
+  else if (n === 'ok') { intentarLogin(); return; }
+  else if (pinActual.length < 6) { pinActual += n; }
+  actualizarPinDots();
+});
+
+function actualizarPinDots() {
+  const dots = document.querySelectorAll('.pin-dot');
+  dots.forEach((d, i) => d.classList.toggle('filled', i < pinActual.length));
+}
+
+async function intentarLogin() {
+  const errorEl = document.getElementById('login-error');
+  errorEl.textContent = "";
+  if (pinActual.length < 4) { errorEl.textContent = "Ingresa tu PIN completo"; return; }
+  const resp = await llamarAPI({ action: 'login', pin: pinActual });
+  if (resp.ok) {
+    sesion = resp.usuario;
+    document.getElementById('app-header').style.display = 'flex';
+    document.getElementById('user-info').textContent = sesion.nombre + ' · ' + sesion.rol;
+    document.getElementById('btn-agregar-producto').style.display = sesion.rol === 'Administrador' ? 'flex' : 'none';
+    irA('menu');
+  } else {
+    errorEl.textContent = resp.error || "PIN incorrecto";
+    pinActual = "";
+    actualizarPinDots();
+  }
+}
+
+function cerrarSesion() {
+  sesion = null; pinActual = "";
+  actualizarPinDots();
+  document.getElementById('app-header').style.display = 'none';
+  irA('login');
+}
+
+// ---------- MOVIMIENTO ----------
+function resetMovimiento() {
+  productoActual = null; tipoMovimiento = null;
+  document.getElementById('producto-encontrado').style.display = 'none';
+  document.getElementById('input-codigo').value = '';
+  document.getElementById('mov-error').textContent = '';
+  document.getElementById('mov-success').textContent = '';
+  detenerEscaneo();
+  cargarProyectos();
+}
+
+async function cargarProyectos() {
+  const resp = await llamarAPI({ action: 'listarProyectos' });
+  const sel = document.getElementById('select-proyecto');
+  sel.innerHTML = '';
+  if (resp.ok) {
+    resp.proyectos.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+function iniciarEscaneo() {
+  const el = document.getElementById('qr-reader');
+  el.style.display = 'block';
+  html5QrCode = new Html5Qrcode("qr-reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 240 },
+    (codigoDecodificado) => {
+      document.getElementById('input-codigo').value = codigoDecodificado;
+      detenerEscaneo();
+      buscarProductoManual();
+    },
+    () => {}
+  ).catch(err => {
+    document.getElementById('mov-error').textContent = "No se pudo abrir la cámara: " + err;
+  });
+}
+
+function detenerEscaneo() {
+  if (html5QrCode) {
+    html5QrCode.stop().catch(() => {});
+    html5QrCode = null;
+  }
+  document.getElementById('qr-reader').style.display = 'none';
+}
+
+async function buscarProductoManual() {
+  const codigo = document.getElementById('input-codigo').value.trim();
+  const errorEl = document.getElementById('mov-error');
+  errorEl.textContent = '';
+  if (!codigo) { errorEl.textContent = "Escribe o escanea un código"; return; }
+  const resp = await llamarAPI({ action: 'buscarProducto', codigo: codigo });
+  if (!resp.ok) { errorEl.textContent = resp.error; document.getElementById('producto-encontrado').style.display = 'none'; return; }
+  productoActual = resp.producto;
+  document.getElementById('prod-nombre').textContent = productoActual.nombre;
+  document.getElementById('prod-detalle').textContent =
+    'Existencia actual: ' + productoActual.existencia_actual + ' ' + productoActual.unidad +
+    '  ·  Ubicación: ' + productoActual.ubicacion;
+  document.getElementById('producto-encontrado').style.display = 'block';
+}
+
+function seleccionarTipo(tipo) {
+  tipoMovimiento = tipo;
+  document.getElementById('btn-entrada').classList.toggle('selected', tipo === 'Entrada');
+  document.getElementById('btn-salida').classList.toggle('selected', tipo === 'Salida');
+}
+
+async function confirmarMovimiento() {
+  const errorEl = document.getElementById('mov-error');
+  const successEl = document.getElementById('mov-success');
+  errorEl.textContent = ''; successEl.textContent = '';
+  const cantidad = Number(document.getElementById('input-cantidad').value);
+  const proyecto = document.getElementById('select-proyecto').value;
+  const observaciones = document.getElementById('input-observaciones').value;
+
+  if (!productoActual) { errorEl.textContent = "Busca un producto primero"; return; }
+  if (!tipoMovimiento) { errorEl.textContent = "Selecciona Entrada o Salida"; return; }
+  if (!cantidad || cantidad <= 0) { errorEl.textContent = "Cantidad inválida"; return; }
+
+  const resp = await llamarAPI({
+    action: 'registrarMovimiento', pin: pinActual, codigo: productoActual.codigo,
+    cantidad: cantidad, tipo: tipoMovimiento, proyecto: proyecto, observaciones: observaciones
+  });
+
+  if (resp.ok) {
+    successEl.textContent = `✓ ${resp.tipo} de ${resp.cantidad} registrada — ${resp.producto}`;
+    setTimeout(() => resetMovimiento(), 1800);
+  } else {
+    errorEl.textContent = resp.error;
+  }
+}
+
+// ---------- AGREGAR PRODUCTO ----------
+function resetAgregar() {
+  ['np-codigo','np-nombre','np-ubicacion','np-inv-inicial','np-inv-minimo'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('np-error').textContent = '';
+  document.getElementById('np-success').textContent = '';
+  cargarCatalogos();
+}
+
+async function cargarCatalogos() {
+  const resp = await llamarAPI({ action: 'listarCategorias' });
+  if (!resp.ok) return;
+  const selCat = document.getElementById('np-categoria');
+  const selUni = document.getElementById('np-unidad');
+  selCat.innerHTML = ''; selUni.innerHTML = '';
+  resp.categorias.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selCat.appendChild(o); });
+  resp.unidades.forEach(u => { const o = document.createElement('option'); o.value = u; o.textContent = u; selUni.appendChild(o); });
+}
+
+async function confirmarAgregarProducto() {
+  const errorEl = document.getElementById('np-error');
+  const successEl = document.getElementById('np-success');
+  errorEl.textContent = ''; successEl.textContent = '';
+
+  const payload = {
+    action: 'agregarProducto', pin: pinActual,
+    codigo: document.getElementById('np-codigo').value.trim(),
+    nombre: document.getElementById('np-nombre').value.trim(),
+    categoria: document.getElementById('np-categoria').value,
+    unidad: document.getElementById('np-unidad').value,
+    ubicacion: document.getElementById('np-ubicacion').value.trim(),
+    inventario_inicial: document.getElementById('np-inv-inicial').value,
+    inventario_minimo: document.getElementById('np-inv-minimo').value
+  };
+
+  if (!payload.codigo || !payload.nombre) { errorEl.textContent = "Código y nombre son obligatorios"; return; }
+
+  const resp = await llamarAPI(payload);
+  if (resp.ok) {
+    successEl.textContent = `✓ Producto "${resp.nombre}" agregado con código ${resp.codigo}`;
+    setTimeout(() => resetAgregar(), 1800);
+  } else {
+    errorEl.textContent = resp.error;
+  }
+}
+</script>
+</body>
+</html>
