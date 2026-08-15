@@ -63,6 +63,12 @@
   .tipo-toggle button.selected.salida{background:var(--rojo); color:var(--blanco);}
   .tipo-toggle button:not(.selected){background:var(--blanco); border:1px solid var(--gris-borde);}
   #qr-reader{width:100%; border-radius:10px; overflow:hidden; margin-top:12px;}
+  .item-caja{
+    background:var(--blanco); border:1px solid var(--gris-borde); border-radius:10px;
+    padding:12px 14px; margin-top:8px; cursor:pointer;
+  }
+  .item-caja .nombre{font-weight:600; font-size:15px;}
+  .item-caja .detalle{font-size:12px; color:#888; margin-top:2px;}
   .producto-info{background:var(--gris); border-radius:10px; padding:14px; margin-top:14px;}
   .producto-info .nombre{font-weight:700; font-size:16px;}
   .producto-info .detalle{font-size:13px; color:#666; margin-top:4px;}
@@ -116,9 +122,14 @@
     <h2>Registrar movimiento</h2>
     <button class="btn-dorado" onclick="iniciarEscaneo()">📷 Escanear código QR</button>
     <div id="qr-reader" style="display:none;"></div>
-    <label>O escribe el código manualmente</label>
-    <input type="text" id="input-codigo" placeholder="Código del producto" autocapitalize="characters">
+    <label>O escribe la ubicación de la caja manualmente</label>
+    <input type="text" id="input-codigo" placeholder="Ej. L1-R3-C1" autocapitalize="characters">
     <button class="btn-secundario" onclick="buscarProductoManual()">Buscar</button>
+
+    <div id="lista-productos-caja" style="display:none; margin-top:14px;">
+      <label style="margin-top:0;">Productos en esta caja — toca el que vas a usar</label>
+      <div id="lista-productos-items"></div>
+    </div>
 
     <div id="producto-encontrado" style="display:none;">
       <div class="producto-info">
@@ -245,6 +256,7 @@ function cerrarSesion() {
 function resetMovimiento() {
   productoActual = null; tipoMovimiento = null;
   document.getElementById('producto-encontrado').style.display = 'none';
+  document.getElementById('lista-productos-caja').style.display = 'none';
   document.getElementById('input-codigo').value = '';
   document.getElementById('mov-error').textContent = '';
   document.getElementById('mov-success').textContent = '';
@@ -292,13 +304,37 @@ function detenerEscaneo() {
 }
 
 async function buscarProductoManual() {
-  const codigo = document.getElementById('input-codigo').value.trim();
+  const ubicacion = document.getElementById('input-codigo').value.trim();
   const errorEl = document.getElementById('mov-error');
   errorEl.textContent = '';
-  if (!codigo) { errorEl.textContent = "Escribe o escanea un código"; return; }
-  const resp = await llamarAPI({ action: 'buscarProducto', codigo: codigo });
-  if (!resp.ok) { errorEl.textContent = resp.error; document.getElementById('producto-encontrado').style.display = 'none'; return; }
-  productoActual = resp.producto;
+  document.getElementById('producto-encontrado').style.display = 'none';
+  document.getElementById('lista-productos-caja').style.display = 'none';
+  productoActual = null;
+
+  if (!ubicacion) { errorEl.textContent = "Escribe o escanea una ubicación"; return; }
+  const resp = await llamarAPI({ action: 'buscarPorUbicacion', ubicacion: ubicacion });
+  if (!resp.ok) { errorEl.textContent = resp.error; return; }
+
+  if (resp.productos.length === 1) {
+    seleccionarProductoDeCaja(resp.productos[0]);
+    return;
+  }
+
+  const cont = document.getElementById('lista-productos-items');
+  cont.innerHTML = '';
+  resp.productos.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'item-caja';
+    div.innerHTML = `<div class="nombre">${p.nombre}</div><div class="detalle">Existencia: ${p.existencia_actual} ${p.unidad} · Código: ${p.codigo}</div>`;
+    div.onclick = () => seleccionarProductoDeCaja(p);
+    cont.appendChild(div);
+  });
+  document.getElementById('lista-productos-caja').style.display = 'block';
+}
+
+function seleccionarProductoDeCaja(producto) {
+  productoActual = producto;
+  document.getElementById('lista-productos-caja').style.display = 'none';
   document.getElementById('prod-nombre').textContent = productoActual.nombre;
   document.getElementById('prod-detalle').textContent =
     'Existencia actual: ' + productoActual.existencia_actual + ' ' + productoActual.unidad +
