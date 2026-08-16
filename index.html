@@ -1,422 +1,688 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Inventario ID">
-<title>Inventario Integral Design</title>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<meta name="apple-mobile-web-app-title" content="Cotizador">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --negro:#1a1a1a; --dorado:#b08d57; --gris:#f2f0ec; --gris-borde:#ddd8cf;
-    --verde:#2e7d32; --rojo:#c62828; --blanco:#fff;
+    --tinta:#161a1d; --tinta-2:#22282d; --linea:#333c44;
+    --papel:#f5f3ef; --texto:#e8e6e1; --tenue:#9aa4ad;
+    --roble:#c98b2e; --roble-claro:#e8b45f; --verde:#5f9e6e;
+    --seguro-abajo:env(safe-area-inset-bottom, 0px);
+    --seguro-arriba:env(safe-area-inset-top, 0px);
+    --seguro-izq:env(safe-area-inset-left, 0px);
+    --seguro-der:env(safe-area-inset-right, 0px);
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  body{
-    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    background:var(--gris); color:var(--negro);
-    padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
-    min-height:100vh;
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--tinta);color:var(--texto);
+    font-family:'Inter',-apple-system,sans-serif;font-size:15px;
+    /* deja aire para la barra fija + la barra de gestos del iPhone */
+    padding-bottom:calc(130px + var(--seguro-abajo))}
+  header{position:sticky;top:0;z-index:20;background:var(--tinta);
+    border-bottom:1px solid var(--linea);
+    padding:calc(14px + var(--seguro-arriba)) calc(18px + var(--seguro-der)) 0 calc(18px + var(--seguro-izq))}
+  h1{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;
+    letter-spacing:.06em;text-transform:uppercase;margin:0 0 12px;color:var(--papel)}
+  h1 span{color:var(--roble)}
+  nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  nav::-webkit-scrollbar{display:none}
+  nav button{flex:0 0 auto;background:none;border:1px solid var(--linea);color:var(--tenue);
+    font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:.05em;
+    text-transform:uppercase;padding:8px 13px;border-radius:2px;cursor:pointer}
+  nav button.on{background:var(--roble);border-color:var(--roble);color:#1a1207;font-weight:600}
+  main{padding:20px calc(18px + var(--seguro-der)) 20px calc(18px + var(--seguro-izq))}
+  section{display:none} section.on{display:block}
+  h2{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:600;
+    margin:0 0 4px;color:var(--papel);letter-spacing:.02em}
+  .sub{color:var(--tenue);font-size:13px;margin:0 0 20px;line-height:1.5}
+  label{display:block;font-size:12px;color:var(--tenue);margin:0 0 5px;letter-spacing:.03em}
+  input,select,textarea{width:100%;background:var(--tinta-2);border:1px solid var(--linea);
+    color:var(--texto);padding:12px;border-radius:3px;
+    font-size:16px;  /* 16px evita que iOS haga zoom al enfocar */
+    font-family:'Inter',sans-serif;-webkit-appearance:none;appearance:none}
+  select{background-image:linear-gradient(45deg,transparent 50%,var(--tenue) 50%),
+    linear-gradient(135deg,var(--tenue) 50%,transparent 50%);
+    background-position:calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+    background-size:5px 5px, 5px 5px;background-repeat:no-repeat;padding-right:34px}
+  textarea{min-height:90px;resize:vertical;line-height:1.5}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--roble);border-color:var(--roble)}
+  select:disabled{opacity:.35;cursor:not-allowed}
+  .campo{margin-bottom:16px}
+  /* En pantallas angostas las columnas se apilan en vez de apretarse */
+  .fila{display:flex;gap:10px;flex-wrap:wrap}
+  .fila>.campo{flex:1 1 140px;min-width:0}
+  @media (max-width:380px){ .fila>.campo{flex:1 1 100%} }
+  .pesos{position:relative}
+  .pesos::before{content:'$';position:absolute;left:12px;top:50%;transform:translateY(-50%);
+    color:var(--roble);font-weight:600;pointer-events:none;font-size:16px}
+  .pesos input{padding-left:27px;font-variant-numeric:tabular-nums}
+  .calc{display:flex;align-items:center;justify-content:space-between;
+    background:var(--tinta-2);border:1px dashed var(--linea);border-radius:3px;
+    padding:12px;color:var(--tenue);font-size:13px}
+  .calc b{font-family:'Barlow Condensed',sans-serif;font-size:20px;color:var(--roble-claro);
+    font-variant-numeric:tabular-nums}
+  .tarjeta{background:var(--tinta-2);border:1px solid var(--linea);border-radius:3px;
+    padding:14px;margin-bottom:12px;position:relative}
+  .tarjeta .num{font-family:'Barlow Condensed',sans-serif;color:var(--roble);
+    font-size:13px;letter-spacing:.1em;margin-bottom:10px;display:block}
+  .quitar{position:absolute;top:8px;right:8px;background:none;border:none;
+    color:var(--tenue);font-size:22px;cursor:pointer;line-height:1;
+    padding:8px 12px}  /* área táctil cómoda para el pulgar */
+  .agregar{width:100%;background:none;border:1px dashed var(--linea);color:var(--roble-claro);
+    padding:14px;border-radius:3px;font-family:'Barlow Condensed',sans-serif;
+    font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+  .agregar:hover{border-color:var(--roble)}
+  .nota{border-left:2px solid var(--roble);padding:2px 0 2px 12px;
+    color:var(--tenue);font-size:12.5px;line-height:1.6;margin:18px 0 0}
+  /* Barra del total: respeta la barra de gestos del iPhone */
+  .barra{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--tinta-2);
+    border-top:1px solid var(--roble);
+    padding:12px calc(18px + var(--seguro-der))
+            calc(12px + var(--seguro-abajo)) calc(18px + var(--seguro-izq));
+    display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .barra .etq{font-size:11px;color:var(--tenue);letter-spacing:.09em;text-transform:uppercase}
+  .barra .cifra{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;
+    color:var(--roble-claro);line-height:1;font-variant-numeric:tabular-nums}
+  .barra button{flex:0 0 auto;background:var(--roble);border:none;color:#1a1207;font-weight:600;
+    font-family:'Barlow Condensed',sans-serif;font-size:15px;letter-spacing:.06em;
+    text-transform:uppercase;padding:13px 18px;border-radius:3px;cursor:pointer}
+  .barra button:disabled{opacity:.4;cursor:default}
+  @media (max-width:360px){ .barra .cifra{font-size:25px} .barra button{padding:13px 14px} }
+  .resumen{border-top:1px solid var(--linea);margin-top:8px}
+  .resumen div{display:flex;justify-content:space-between;gap:12px;padding:13px 0;
+    border-bottom:1px solid var(--linea);font-variant-numeric:tabular-nums}
+  .resumen .grande{font-size:19px;color:var(--papel);font-weight:600}
+  .resumen .grande span:last-child{color:var(--roble-claro)}
+  .ok{color:var(--verde);font-size:13px;margin-top:12px;min-height:18px}
+  /* Pantalla de acceso */
+  #acceso{position:fixed;inset:0;z-index:60;background:var(--tinta);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:0 28px;gap:0;text-align:center}
+  #acceso h1{font-size:22px;margin:0 0 6px}
+  #acceso p{color:var(--tenue);font-size:13.5px;margin:0 0 28px;line-height:1.5}
+  #acceso .pin{width:100%;max-width:230px;text-align:center;letter-spacing:.5em;
+    font-size:26px;padding:15px 12px 15px 24px;font-family:'Barlow Condensed',sans-serif;
+    font-weight:600;background:var(--tinta-2);border:1px solid var(--linea);
+    border-radius:3px;color:var(--texto)}
+  #acceso .pin:focus{outline:2px solid var(--roble);border-color:var(--roble)}
+  #acceso button{margin-top:16px;width:100%;max-width:230px;background:var(--roble);
+    border:none;color:#1a1207;font-weight:600;font-family:'Barlow Condensed',sans-serif;
+    font-size:16px;letter-spacing:.06em;text-transform:uppercase;
+    padding:14px;border-radius:3px;cursor:pointer}
+  #acceso button:disabled{opacity:.5}
+  #errPin{color:#ff9b9b;font-size:13px;margin-top:14px;min-height:18px}
+  .oculto{display:none !important}
+  #quien{font-size:11px;color:var(--tenue);letter-spacing:.04em;
+    margin:-6px 0 12px;display:flex;justify-content:space-between;align-items:center}
+  #quien button{background:none;border:none;color:var(--roble);font-size:11px;
+    text-decoration:underline;cursor:pointer;padding:4px}
+  #aviso{display:none;position:fixed;left:12px;right:12px;
+    bottom:calc(86px + var(--seguro-abajo));z-index:40;
+    background:#7a2e2e;color:#fff;padding:12px 14px;border-radius:4px;
+    font-size:13.5px;line-height:1.45;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+  @media (prefers-reduced-motion:no-preference){
+    section.on{animation:sube .18s ease-out}
+    @keyframes sube{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   }
-  header{
-    background:var(--negro); color:var(--blanco); padding:16px 20px;
-    display:flex; justify-content:space-between; align-items:center;
-    position:sticky; top:0; z-index:10;
-  }
-  header h1{font-size:16px; margin:0; font-weight:600; letter-spacing:.5px;}
-  header .user-info{font-size:12px; color:var(--dorado);}
-  .screen{display:none; padding:20px; max-width:480px; margin:0 auto;}
-  .screen.active{display:block;}
-  .card{background:var(--blanco); border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,.08);}
-  h2{font-size:18px; margin:0 0 16px;}
-  label{display:block; font-size:13px; font-weight:600; margin:14px 0 6px; color:#555;}
-  input, select, textarea{
-    width:100%; padding:12px 14px; border:1px solid var(--gris-borde); border-radius:10px;
-    font-size:16px; background:var(--blanco); color:var(--negro);
-  }
-  textarea{resize:vertical; min-height:60px;}
-  button{
-    width:100%; padding:14px; border:none; border-radius:10px; font-size:16px; font-weight:600;
-    cursor:pointer; margin-top:16px;
-  }
-  .btn-primary{background:var(--negro); color:var(--blanco);}
-  .btn-dorado{background:var(--dorado); color:var(--blanco);}
-  .btn-secundario{background:var(--blanco); color:var(--negro); border:1px solid var(--gris-borde);}
-  .btn-verde{background:var(--verde); color:var(--blanco);}
-  .btn-rojo{background:var(--rojo); color:var(--blanco);}
-  button:disabled{opacity:.5;}
-  .pin-dots{display:flex; justify-content:center; gap:14px; margin:24px 0;}
-  .pin-dot{width:16px; height:16px; border-radius:50%; border:2px solid var(--dorado); background:transparent;}
-  .pin-dot.filled{background:var(--dorado);}
-  .pin-pad{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
-  .pin-pad button{
-    aspect-ratio:1; border-radius:50%; font-size:22px; background:var(--blanco);
-    border:1px solid var(--gris-borde); margin:0; color:var(--negro);
-  }
-  .error-msg{color:var(--rojo); font-size:14px; text-align:center; margin-top:10px; min-height:18px;}
-  .success-msg{color:var(--verde); font-size:14px; text-align:center; margin-top:10px;}
-  .tipo-toggle{display:flex; gap:10px; margin-top:14px;}
-  .tipo-toggle button{margin:0; padding:12px;}
-  .tipo-toggle button.selected.entrada{background:var(--verde); color:var(--blanco);}
-  .tipo-toggle button.selected.salida{background:var(--rojo); color:var(--blanco);}
-  .tipo-toggle button:not(.selected){background:var(--blanco); border:1px solid var(--gris-borde);}
-  #qr-reader{width:100%; border-radius:10px; overflow:hidden; margin-top:12px;}
-  .item-caja{
-    background:var(--blanco); border:1px solid var(--gris-borde); border-radius:10px;
-    padding:12px 14px; margin-top:8px; cursor:pointer;
-  }
-  .item-caja .nombre{font-weight:600; font-size:15px;}
-  .item-caja .detalle{font-size:12px; color:#888; margin-top:2px;}
-  .producto-info{background:var(--gris); border-radius:10px; padding:14px; margin-top:14px;}
-  .producto-info .nombre{font-weight:700; font-size:16px;}
-  .producto-info .detalle{font-size:13px; color:#666; margin-top:4px;}
-  .menu-btn{
-    display:flex; align-items:center; justify-content:space-between;
-    background:var(--blanco); border-radius:14px; padding:20px; margin-bottom:14px;
-    box-shadow:0 1px 4px rgba(0,0,0,.08); border:none; width:100%; text-align:left;
-  }
-  .menu-btn span{font-size:16px; font-weight:600;}
-  .menu-btn .flecha{color:var(--dorado); font-size:20px;}
-  .link-btn{background:none; border:none; color:#888; font-size:14px; text-decoration:underline; margin-top:20px;}
-  .loading{text-align:center; padding:20px; color:#888;}
 </style>
 </head>
 <body>
 
-<header id="app-header" style="display:none;">
-  <h1>INVENTARIO INTEGRAL DESIGN</h1>
-  <div class="user-info" id="user-info"></div>
+<div id="acceso">
+  <h1>Cotizador <span>Integral Design</span></h1>
+  <p>Escribe tu PIN para entrar</p>
+  <input id="pin" class="pin" type="tel" inputmode="numeric" maxlength="8" autocomplete="off">
+  <button id="btnEntrar" onclick="entrar()">Entrar</button>
+  <p id="errPin"></p>
+</div>
+
+<header class="oculto" id="cabecera">
+  <h1>Cotizador <span>/ Integral Design</span></h1>
+  <div id="quien"><span id="nombreVendedor"></span><button onclick="salir()">Salir</button></div>
+  <nav id="nav"></nav>
 </header>
 
-<!-- LOGIN -->
-<div class="screen active" id="screen-login">
-  <div class="card" style="margin-top:60px; text-align:center;">
-    <h2>Inventario Integral Design</h2>
-    <p style="color:#888; font-size:14px;">Ingresa tu PIN</p>
-    <div class="pin-dots" id="pin-dots">
-      <div class="pin-dot"></div><div class="pin-dot"></div>
-      <div class="pin-dot"></div><div class="pin-dot"></div>
+<main class="oculto" id="cuerpo">
+  <section id="s0" class="on">
+    <h2>Proyecto</h2>
+    <p class="sub">Datos generales y tiempos estimados.</p>
+    <div class="campo"><label>Nombre del proyecto</label><input id="proyecto"></div>
+    <div class="campo"><label>Cliente</label><input id="cliente"></div>
+    <div class="campo"><label>Detalles</label><input id="detalles" placeholder="Dirección, zona, notas"></div>
+    <div class="campo"><label>Metros lineales de cocina</label>
+      <input id="mlCocina" type="number" inputmode="decimal" step="0.1" value="0"></div>
+    <div class="calc" style="margin-bottom:16px">
+      <span>Días de fabricación</span><b id="verDiasFab">0</b></div>
+    <div class="calc" style="margin-bottom:16px">
+      <span>Días de instalación</span><b id="verDiasInst">0</b></div>
+    <div class="fila">
+      <div class="campo"><label>Días extra de fabricación</label>
+        <input id="diasFabricacionExtra" type="number" inputmode="numeric" min="0" value="0"></div>
+      <div class="campo"><label>Días extra de instalación</label>
+        <input id="diasInstalacionExtra" type="number" inputmode="numeric" min="0" value="0"></div>
     </div>
-    <div class="pin-pad" id="pin-pad">
-      <button data-n="1">1</button><button data-n="2">2</button><button data-n="3">3</button>
-      <button data-n="4">4</button><button data-n="5">5</button><button data-n="6">6</button>
-      <button data-n="7">7</button><button data-n="8">8</button><button data-n="9">9</button>
-      <button data-n="borrar">⌫</button><button data-n="0">0</button><button data-n="ok">OK</button>
+    <p class="nota">Los días los calcula el sistema con los muebles capturados y los metros
+    lineales. Si la obra lo exige puedes agregar días extra; quedan registrados en la cotización.</p>
+    <div class="campo"><label>Viáticos (solo si es fuera de la ciudad)</label>
+      <div class="pesos"><input id="viaticos" class="dinero" inputmode="decimal" value="0"></div>
     </div>
-    <div class="error-msg" id="login-error"></div>
-  </div>
-</div>
+  </section>
 
-<!-- MENU -->
-<div class="screen" id="screen-menu">
-  <button class="menu-btn" onclick="irA('movimiento')"><span>Registrar entrada / salida</span><span class="flecha">›</span></button>
-  <button class="menu-btn" id="btn-agregar-producto" onclick="irA('agregar')" style="display:none;"><span>Agregar producto nuevo</span><span class="flecha">›</span></button>
-  <button class="link-btn" onclick="cerrarSesion()">Cerrar sesión</button>
-</div>
-
-<!-- MOVIMIENTO -->
-<div class="screen" id="screen-movimiento">
-  <div class="card">
-    <h2>Registrar movimiento</h2>
-    <button class="btn-dorado" onclick="iniciarEscaneo()">📷 Escanear código QR</button>
-    <div id="qr-reader" style="display:none;"></div>
-    <label>O escribe la ubicación, nombre o código</label>
-    <input type="text" id="input-codigo" placeholder="Ej. L1-R3-C1, bisagra, o código" autocapitalize="characters">
-    <button class="btn-secundario" onclick="buscarProductoManual()">Buscar</button>
-
-    <div id="lista-productos-caja" style="display:none; margin-top:14px;">
-      <label style="margin-top:0;">Resultados — toca el que vas a usar</label>
-      <div id="lista-productos-items"></div>
+  <section id="s1">
+    <h2>Precios</h2>
+    <p class="sub">Se guardan y se reutilizan en la siguiente cotización.</p>
+    <div class="fila">
+      <div class="campo"><label>Tablero interior</label>
+        <div class="pesos"><input class="pr dinero" id="p_tableroInterior" inputmode="decimal"></div></div>
+      <div class="campo"><label>Tablero de puertas</label>
+        <div class="pesos"><input class="pr dinero" id="p_tableroFrente" inputmode="decimal"></div></div>
     </div>
+    <div class="fila">
+      <div class="campo"><label>Placa de cuarzo</label>
+        <div class="pesos"><input class="pr dinero" id="p_placaCuarzo" inputmode="decimal"></div></div>
+      <div class="campo"><label>ML de transformación</label>
+        <div class="pesos"><input class="pr dinero" id="p_mlTransformacion" inputmode="decimal"></div></div>
+    </div>
+    <button class="agregar" onclick="guardarPrecios()">Guardar precios</button>
+    <p class="ok" id="okPrecios"></p>
+    <p class="nota">
+      Bisagra $100 por pieza · LED $600 por ml · Zoclo $300 por ml.<br>
+      Vista o mampara: la mitad del precio del tablero de puertas por m².
+    </p>
+  </section>
 
-    <div id="producto-encontrado" style="display:none;">
-      <div class="producto-info">
-        <div class="nombre" id="prod-nombre"></div>
-        <div class="detalle" id="prod-detalle"></div>
+  <section id="s2">
+    <h2>Muebles</h2>
+    <p class="sub">Las bisagras y los cajones se cuentan solos según el tipo.</p>
+    <div id="muebles"></div>
+    <button class="agregar" onclick="addMueble()">+ Agregar mueble</button>
+  </section>
+
+  <section id="s3">
+    <h2>Cuarzo</h2>
+    <p class="sub">Placas de material y metros lineales de mano de obra.</p>
+    <div class="fila">
+      <div class="campo"><label>Placas de cuarzo</label><input id="cuarzoPlacas" type="number" inputmode="decimal" value="0"></div>
+      <div class="campo"><label>ML de transformación</label><input id="cuarzoMl" type="number" inputmode="decimal" value="0"></div>
+    </div>
+  </section>
+
+  <section id="s4">
+    <h2>Zoclo</h2>
+    <p class="sub">Deja en cero si el proyecto no lleva.</p>
+    <div class="campo"><label>Metros lineales de zoclo</label><input id="zocloMl" type="number" inputmode="decimal" value="0"></div>
+  </section>
+
+  <section id="s5">
+    <h2>Vistas y mamparas</h2>
+    <p class="sub">Captura largo y ancho. Los metros cuadrados se calculan solos.</p>
+    <div id="vistas"></div>
+    <button class="agregar" onclick="addVista()">+ Agregar vista o mampara</button>
+  </section>
+
+  <section id="s6">
+    <h2>Accesorios y especiales</h2>
+    <p class="sub">Accesorios, piezas especiales y herrajes especiales.</p>
+    <div id="accesorios"></div>
+    <button class="agregar" onclick="addAccesorio()">+ Agregar</button>
+  </section>
+
+  <section id="s7">
+    <h2>Pedidos especiales</h2>
+    <p class="sub">Puerta especial, mueble especial, gabinete especial, maniobra especial. Agrega tantos como lleve la cocina.</p>
+    <div id="especiales"></div>
+    <button class="agregar" onclick="addEspecial()">+ Agregar pedido especial</button>
+  </section>
+
+  <section id="s8">
+    <h2>LEDs</h2>
+    <p class="sub">La cinta se calcula por metro lineal. El apagador se captura aparte: déjalo en cero si encienden desde apagador de pared.</p>
+    <div class="fila">
+      <div class="campo"><label>ML de LED</label><input id="ledMl" type="number" inputmode="decimal" value="0"></div>
+      <div class="campo"><label>Tipo de apagador</label>
+        <select id="tipoApagador">
+          <option value="Ninguno (apagador de pared)">Ninguno (de pared)</option>
+          <option value="Estándar">Estándar</option>
+          <option value="Inalámbrico">Inalámbrico</option>
+          <option value="Wifi">Wifi</option>
+        </select>
       </div>
-
-      <label>Tipo de movimiento</label>
-      <div class="tipo-toggle">
-        <button type="button" id="btn-entrada" class="entrada" onclick="seleccionarTipo('Entrada')">Entrada</button>
-        <button type="button" id="btn-salida" class="salida" onclick="seleccionarTipo('Salida')">Salida</button>
-      </div>
-
-      <label>Cantidad</label>
-      <input type="number" id="input-cantidad" inputmode="numeric" min="1">
-
-      <label>Proyecto</label>
-      <select id="select-proyecto"></select>
-
-      <label>Observaciones (opcional)</label>
-      <textarea id="input-observaciones"></textarea>
-
-      <button class="btn-primary" onclick="confirmarMovimiento()">Confirmar movimiento</button>
     </div>
-    <div class="error-msg" id="mov-error"></div>
-    <div class="success-msg" id="mov-success"></div>
-    <button class="link-btn" onclick="irA('menu')">‹ Volver al menú</button>
-  </div>
-</div>
+    <div class="campo"><label>Precio del apagador</label>
+      <div class="pesos"><input id="precioApagador" class="dinero" inputmode="decimal" value="0"></div>
+    </div>
+    <div class="campo"><label>Detalles de la iluminación</label>
+      <textarea id="detallesLed" placeholder="Ubicación de las cintas, dónde van los apagadores, temperatura de luz, notas para el instalador…"></textarea>
+    </div>
+  </section>
 
-<!-- AGREGAR PRODUCTO -->
-<div class="screen" id="screen-agregar">
-  <div class="card">
-    <h2>Agregar producto nuevo</h2>
-    <label>Código</label>
-    <input type="text" id="np-codigo" autocapitalize="characters">
-    <label>Nombre</label>
-    <input type="text" id="np-nombre">
-    <label>Categoría</label>
-    <select id="np-categoria"></select>
-    <label>Unidad</label>
-    <select id="np-unidad"></select>
-    <label>Ubicación (ej. L1-R2-C1)</label>
-    <input type="text" id="np-ubicacion" autocapitalize="characters">
-    <label>Inventario inicial</label>
-    <input type="number" id="np-inv-inicial" inputmode="numeric" min="0">
-    <label>Inventario mínimo</label>
-    <input type="number" id="np-inv-minimo" inputmode="numeric" min="0">
-    <button class="btn-verde" onclick="confirmarAgregarProducto()">Agregar al inventario</button>
-    <div class="error-msg" id="np-error"></div>
-    <div class="success-msg" id="np-success"></div>
-    <button class="link-btn" onclick="irA('menu')">‹ Volver al menú</button>
+  <section id="s9">
+    <h2>Electrodomésticos</h2>
+    <p class="sub">Se cotizan con margen distinto al de fabricación.</p>
+    <div id="electro"></div>
+    <button class="agregar" onclick="addElectro()">+ Agregar electrodoméstico</button>
+  </section>
+
+  <section id="s10">
+    <h2>Resumen</h2>
+    <p class="sub">Precio final del proyecto y esquema de pago.</p>
+    <div class="resumen" id="detalleResumen"></div>
+    <button class="agregar" style="margin-top:18px" onclick="guardar()">Guardar cotización</button>
+    <p class="ok" id="okGuardar"></p>
+  </section>
+</main>
+
+<div id="aviso"></div>
+
+<div class="barra oculto" id="barraTotal">
+  <div>
+    <div class="etq">Total del proyecto</div>
+    <div class="cifra" id="totalVivo">$0</div>
   </div>
+  <button id="btnSiguiente" onclick="siguiente()">Siguiente</button>
 </div>
 
 <script>
-// ⚠️ PEGA AQUÍ LA URL DE TU APPS SCRIPT (termina en /exec)
-const API_URL = "https://script.google.com/macros/s/AKfycbwy21WDMYxyWsCB_9ObIj_P_YAf98t2ZsnFjAxzqXk0yZEXBzkA8-iaXPzrZenQ0-Bn/exec";
+// ============================================================
+// PEGA AQUÍ LA URL DE TU APPS SCRIPT (la que termina en /exec)
+// ============================================================
+var API = 'https://script.google.com/macros/s/AKfycbwvfn1u3GHJ0oSnNkRaSts5VYsBuvwHUHiT2Ez9-vh80KXD1WDQNaO03GV2Og3Klm8/exec';
 
-let sesion = null;
-let pinActual = "";
-let productoActual = null;
-let tipoMovimiento = null;
-let html5QrCode = null;
+var PANTALLAS = ['Proyecto','Precios','Muebles','Cuarzo','Zoclo','Vistas','Accesorios','Especiales','LEDs','Electro','Resumen'];
+var actual = 0, DATOS = null, calcTimer = null, ULTIMO = null;
 
-async function llamarAPI(payload) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload)
+// Llama a la API por JSONP: es lo que evita los bloqueos de CORS
+// al abrir la página desde GitHub Pages.
+var PIN = '', VENDEDOR = '';
+var jsonpN = 0;
+function api(accion, datos, alTerminar, alFallar){
+  var cb = 'cb' + (++jsonpN) + '_' + Date.now();
+  var s = document.createElement('script');
+  var timer = setTimeout(function(){ limpiar(); if(alFallar) alFallar('Tiempo agotado'); }, 25000);
+  function limpiar(){
+    clearTimeout(timer);
+    try { delete window[cb]; } catch(e){ window[cb] = undefined; }
+    if(s.parentNode) s.parentNode.removeChild(s);
+  }
+  window[cb] = function(res){
+    limpiar();
+    if(res && res.error){ if(alFallar) alFallar(res.error); return; }
+    if(alTerminar) alTerminar(res);
+  };
+  s.onerror = function(){ limpiar(); if(alFallar) alFallar('No se pudo conectar'); };
+  s.src = API + '?callback=' + cb + '&accion=' + encodeURIComponent(accion) +
+          '&pin=' + encodeURIComponent(PIN) +
+          '&datos=' + encodeURIComponent(JSON.stringify(datos || {}));
+  document.body.appendChild(s);
+}
+
+function avisoError(msg){
+  var b = document.getElementById('aviso');
+  b.textContent = msg;
+  b.style.display = 'block';
+  setTimeout(function(){ b.style.display = 'none'; }, 6000);
+}
+
+function money(n){ return '$' + Math.round(n||0).toLocaleString('es-MX'); }
+function limpiar(v){ return Number(String(v).replace(/[^0-9.]/g,'')) || 0; }
+function valorDinero(id){ return limpiar(document.getElementById(id).value); }
+function formatearDinero(el){
+  var n = limpiar(el.value);
+  el.value = n ? n.toLocaleString('es-MX') : '';
+}
+function activarDinero(raiz){
+  (raiz || document).querySelectorAll('.dinero').forEach(function(el){
+    if(el.dataset.listo) return;
+    el.dataset.listo = '1';
+    el.addEventListener('blur', function(){ formatearDinero(el); recalcular(); });
+    el.addEventListener('focus', function(){ el.value = limpiar(el.value) || ''; });
   });
-  return res.json();
 }
 
-function irA(pantalla) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + pantalla).classList.add('active');
-  if (pantalla === 'movimiento') resetMovimiento();
-  if (pantalla === 'agregar') resetAgregar();
+function pintarNav(){
+  var nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  PANTALLAS.forEach(function(nombre, i){
+    var b = document.createElement('button');
+    b.textContent = nombre;
+    if(i === actual) b.className = 'on';
+    b.onclick = function(){ ir(i); };
+    nav.appendChild(b);
+  });
+  // mantiene visible la pestaña activa al avanzar
+  var act = nav.querySelector('button.on');
+  if(act && act.scrollIntoView) act.scrollIntoView({inline:'center', block:'nearest'});
+}
+function ir(i){
+  actual = i;
+  PANTALLAS.forEach(function(_, k){
+    document.getElementById('s'+k).className = (k===i ? 'on' : '');
+  });
+  pintarNav();
+  document.getElementById('btnSiguiente').disabled = (i === PANTALLAS.length-1);
+  window.scrollTo(0,0);
+  if(i === PANTALLAS.length-1) pintarResumen();
+}
+function siguiente(){ if(actual < PANTALLAS.length-1) ir(actual+1); }
+
+function entrar(){
+  var campo = document.getElementById('pin');
+  var btn = document.getElementById('btnEntrar');
+  var err = document.getElementById('errPin');
+  PIN = campo.value.trim();
+  if(!PIN){ err.textContent = 'Escribe tu PIN.'; return; }
+  btn.disabled = true; btn.textContent = 'Entrando…'; err.textContent = '';
+  api('entrar', {}, function(d){ arrancar(d); }, function(msg){
+    btn.disabled = false; btn.textContent = 'Entrar';
+    err.textContent = (msg === 'PIN incorrecto') ? 'PIN incorrecto.' : msg;
+    campo.value = ''; campo.focus();
+  });
 }
 
-// ---------- LOGIN ----------
-document.getElementById('pin-pad').addEventListener('click', (e) => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  const n = btn.dataset.n;
-  if (n === 'borrar') { pinActual = pinActual.slice(0, -1); }
-  else if (n === 'ok') { intentarLogin(); return; }
-  else if (pinActual.length < 6) { pinActual += n; }
-  actualizarPinDots();
+function salir(){
+  PIN = '';
+  try { sessionStorage.removeItem('pinCotizador'); } catch(e){}
+  location.reload();
+}
+
+function arrancar(d){
+  try { sessionStorage.setItem('pinCotizador', PIN); } catch(e){}
+  document.getElementById('acceso').classList.add('oculto');
+  ['cabecera','cuerpo','barraTotal'].forEach(function(id){
+    document.getElementById(id).classList.remove('oculto');
+  });
+  document.getElementById('nombreVendedor').textContent = d.vendedor.toUpperCase();
+  VENDEDOR = d.vendedor;
+  DATOS = d;
+  Object.keys(d.precios).forEach(function(k){
+    var el = document.getElementById('p_'+k);
+    if(el){ el.value = d.precios[k] ? Number(d.precios[k]).toLocaleString('es-MX') : ''; }
+  });
+  activarDinero();
+  addMueble();
+  pintarNav();
+  recalcular();
+}
+
+document.getElementById('pin').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') entrar();
 });
 
-function actualizarPinDots() {
-  const dots = document.querySelectorAll('.pin-dot');
-  dots.forEach((d, i) => d.classList.toggle('filled', i < pinActual.length));
-}
-
-async function intentarLogin() {
-  const errorEl = document.getElementById('login-error');
-  errorEl.textContent = "";
-  if (pinActual.length < 4) { errorEl.textContent = "Ingresa tu PIN completo"; return; }
-  const resp = await llamarAPI({ action: 'login', pin: pinActual });
-  if (resp.ok) {
-    sesion = resp.usuario;
-    document.getElementById('app-header').style.display = 'flex';
-    document.getElementById('user-info').textContent = sesion.nombre + ' · ' + sesion.rol;
-    document.getElementById('btn-agregar-producto').style.display = sesion.rol === 'Administrador' ? 'flex' : 'none';
-    irA('menu');
-  } else {
-    errorEl.textContent = resp.error || "PIN incorrecto";
-    pinActual = "";
-    actualizarPinDots();
-  }
-}
-
-function cerrarSesion() {
-  sesion = null; pinActual = "";
-  actualizarPinDots();
-  document.getElementById('app-header').style.display = 'none';
-  irA('login');
-}
-
-// ---------- MOVIMIENTO ----------
-function resetMovimiento() {
-  productoActual = null; tipoMovimiento = null;
-  document.getElementById('producto-encontrado').style.display = 'none';
-  document.getElementById('lista-productos-caja').style.display = 'none';
-  document.getElementById('input-codigo').value = '';
-  document.getElementById('mov-error').textContent = '';
-  document.getElementById('mov-success').textContent = '';
-  detenerEscaneo();
-  cargarProyectos();
-}
-
-async function cargarProyectos() {
-  const resp = await llamarAPI({ action: 'listarProyectos' });
-  const sel = document.getElementById('select-proyecto');
-  sel.innerHTML = '';
-  if (resp.ok) {
-    resp.proyectos.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p; opt.textContent = p;
-      sel.appendChild(opt);
+// Si ya entró en esta sesión, no vuelve a pedir el PIN
+(function(){
+  var guardado = '';
+  try { guardado = sessionStorage.getItem('pinCotizador') || ''; } catch(e){}
+  if(guardado){
+    PIN = guardado;
+    api('entrar', {}, function(d){ arrancar(d); }, function(){
+      PIN = '';
+      try { sessionStorage.removeItem('pinCotizador'); } catch(e){}
+      document.getElementById('pin').focus();
     });
-  }
-}
-
-function iniciarEscaneo() {
-  const el = document.getElementById('qr-reader');
-  el.style.display = 'block';
-  html5QrCode = new Html5Qrcode("qr-reader");
-  html5QrCode.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 240 },
-    (codigoDecodificado) => {
-      document.getElementById('input-codigo').value = codigoDecodificado;
-      detenerEscaneo();
-      buscarProductoManual();
-    },
-    () => {}
-  ).catch(err => {
-    document.getElementById('mov-error').textContent = "No se pudo abrir la cámara: " + err;
-  });
-}
-
-function detenerEscaneo() {
-  if (html5QrCode) {
-    html5QrCode.stop().catch(() => {});
-    html5QrCode = null;
-  }
-  document.getElementById('qr-reader').style.display = 'none';
-}
-
-async function buscarProductoManual() {
-  const ubicacion = document.getElementById('input-codigo').value.trim();
-  const errorEl = document.getElementById('mov-error');
-  errorEl.textContent = '';
-  document.getElementById('producto-encontrado').style.display = 'none';
-  document.getElementById('lista-productos-caja').style.display = 'none';
-  productoActual = null;
-
-  if (!ubicacion) { errorEl.textContent = "Escribe o escanea una ubicación"; return; }
-  const resp = await llamarAPI({ action: 'buscarPorUbicacion', ubicacion: ubicacion });
-  if (!resp.ok) { errorEl.textContent = resp.error; return; }
-
-  if (resp.productos.length === 1) {
-    seleccionarProductoDeCaja(resp.productos[0]);
-    return;
-  }
-
-  const cont = document.getElementById('lista-productos-items');
-  cont.innerHTML = '';
-  resp.productos.forEach(p => {
-    const div = document.createElement('div');
-    div.className = 'item-caja';
-    div.innerHTML = `<div class="nombre">${p.nombre}</div><div class="detalle">Existencia: ${p.existencia_actual} ${p.unidad} · Código: ${p.codigo}</div>`;
-    div.onclick = () => seleccionarProductoDeCaja(p);
-    cont.appendChild(div);
-  });
-  document.getElementById('lista-productos-caja').style.display = 'block';
-}
-
-function seleccionarProductoDeCaja(producto) {
-  productoActual = producto;
-  document.getElementById('lista-productos-caja').style.display = 'none';
-  document.getElementById('prod-nombre').textContent = productoActual.nombre;
-  document.getElementById('prod-detalle').textContent =
-    'Existencia actual: ' + productoActual.existencia_actual + ' ' + productoActual.unidad +
-    '  ·  Ubicación: ' + productoActual.ubicacion;
-  document.getElementById('producto-encontrado').style.display = 'block';
-}
-
-function seleccionarTipo(tipo) {
-  tipoMovimiento = tipo;
-  document.getElementById('btn-entrada').classList.toggle('selected', tipo === 'Entrada');
-  document.getElementById('btn-salida').classList.toggle('selected', tipo === 'Salida');
-}
-
-async function confirmarMovimiento() {
-  const errorEl = document.getElementById('mov-error');
-  const successEl = document.getElementById('mov-success');
-  errorEl.textContent = ''; successEl.textContent = '';
-  const cantidad = Number(document.getElementById('input-cantidad').value);
-  const proyecto = document.getElementById('select-proyecto').value;
-  const observaciones = document.getElementById('input-observaciones').value;
-
-  if (!productoActual) { errorEl.textContent = "Busca un producto primero"; return; }
-  if (!tipoMovimiento) { errorEl.textContent = "Selecciona Entrada o Salida"; return; }
-  if (!cantidad || cantidad <= 0) { errorEl.textContent = "Cantidad inválida"; return; }
-
-  const resp = await llamarAPI({
-    action: 'registrarMovimiento', pin: pinActual, codigo: productoActual.codigo,
-    cantidad: cantidad, tipo: tipoMovimiento, proyecto: proyecto, observaciones: observaciones
-  });
-
-  if (resp.ok) {
-    successEl.textContent = `✓ ${resp.tipo} de ${resp.cantidad} registrada — ${resp.producto}`;
-    setTimeout(() => resetMovimiento(), 1800);
   } else {
-    errorEl.textContent = resp.error;
+    document.getElementById('pin').focus();
   }
+})();
+
+function guardarPrecios(){
+  var p = {};
+  document.querySelectorAll('.pr').forEach(function(el){
+    p[el.id.replace('p_','')] = limpiar(el.value);
+  });
+  api('guardarPrecios', p, function(){
+    document.getElementById('okPrecios').textContent = 'Precios guardados.';
+    setTimeout(function(){ document.getElementById('okPrecios').textContent=''; }, 2500);
+    recalcular();
+  }, function(msg){ avisoError('No se pudieron guardar los precios: ' + msg); });
 }
 
-// ---------- AGREGAR PRODUCTO ----------
-function resetAgregar() {
-  ['np-codigo','np-nombre','np-ubicacion','np-inv-inicial','np-inv-minimo'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('np-error').textContent = '';
-  document.getElementById('np-success').textContent = '';
-  cargarCatalogos();
+function addMueble(){
+  var cont = document.getElementById('muebles');
+  var i = cont.children.length + 1;
+  var cats = [];
+  DATOS.catalogo.forEach(function(c){ if(cats.indexOf(c.cat)<0) cats.push(c.cat); });
+
+  var d = document.createElement('div');
+  d.className = 'tarjeta';
+  d.innerHTML =
+    '<span class="num">MUEBLE ' + String(i).padStart(2,'0') + '</span>' +
+    '<button class="quitar" onclick="this.parentNode.remove();recalcular()">&times;</button>' +
+    '<div class="campo"><label>Tipo</label><select class="m-cat"></select></div>' +
+    '<div class="campo"><label>Tamaño</label><select class="m-var"></select></div>' +
+    '<div class="fila">' +
+      '<div class="campo"><label>Cantidad</label><input class="m-cant" type="number" inputmode="numeric" value="1"></div>' +
+      '<div class="campo"><label class="m-lbl-caj">Modelo de cajón</label><select class="m-caj"></select></div>' +
+    '</div>';
+  cont.appendChild(d);
+
+  var selCat = d.querySelector('.m-cat');
+  cats.forEach(function(c){
+    var o = document.createElement('option'); o.value=c; o.textContent=c; selCat.appendChild(o);
+  });
+  var selCaj = d.querySelector('.m-caj');
+  DATOS.modelosCajon.forEach(function(m){
+    var o = document.createElement('option'); o.value=m.nombre; o.textContent=m.nombre; selCaj.appendChild(o);
+  });
+
+  selCat.onchange = function(){ llenarVariantes(d); ajustarCajon(d); recalcular(); };
+  d.querySelector('.m-var').addEventListener('change', function(){ ajustarCajon(d); recalcular(); });
+  llenarVariantes(d);
+  ajustarCajon(d);
+  d.querySelectorAll('select,input').forEach(function(el){
+    el.addEventListener('change', recalcular);
+  });
+}
+function llenarVariantes(t){
+  var cat = t.querySelector('.m-cat').value;
+  var sel = t.querySelector('.m-var');
+  sel.innerHTML = '';
+  DATOS.catalogo.filter(function(c){ return c.cat === cat; }).forEach(function(c){
+    var o = document.createElement('option'); o.value=c.var; o.textContent=c.var; sel.appendChild(o);
+  });
+}
+function ajustarCajon(t){
+  var cat = t.querySelector('.m-cat').value, va = t.querySelector('.m-var').value;
+  var tipo = DATOS.catalogo.filter(function(c){ return c.cat===cat && c.var===va; })[0];
+  var sel = t.querySelector('.m-caj'), lbl = t.querySelector('.m-lbl-caj');
+  var lleva = tipo && tipo.cajones > 0;
+  sel.disabled = !lleva;
+  lbl.textContent = lleva ? ('Modelo de cajón (' + tipo.cajones + ')') : 'Sin cajones';
 }
 
-async function cargarCatalogos() {
-  const resp = await llamarAPI({ action: 'listarCategorias' });
-  if (!resp.ok) return;
-  const selCat = document.getElementById('np-categoria');
-  const selUni = document.getElementById('np-unidad');
-  selCat.innerHTML = ''; selUni.innerHTML = '';
-  resp.categorias.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selCat.appendChild(o); });
-  resp.unidades.forEach(u => { const o = document.createElement('option'); o.value = u; o.textContent = u; selUni.appendChild(o); });
+function addVista(){
+  var c = document.getElementById('vistas');
+  var d = document.createElement('div');
+  d.className = 'tarjeta';
+  d.innerHTML =
+    '<button class="quitar" onclick="this.parentNode.remove();recalcular()">&times;</button>' +
+    '<div class="campo"><label>Descripción</label><input class="v-desc"></div>' +
+    '<div class="fila">' +
+      '<div class="campo"><label>Largo (m)</label><input class="v-largo" type="number" inputmode="decimal" step="0.01" value="0"></div>' +
+      '<div class="campo"><label>Ancho (m)</label><input class="v-ancho" type="number" inputmode="decimal" step="0.01" value="0"></div>' +
+    '</div>' +
+    '<div class="calc"><span>Superficie</span><b class="v-m2">0.00 m²</b></div>';
+  c.appendChild(d);
+  d.querySelectorAll('input').forEach(function(el){
+    el.addEventListener('input', function(){ pintarM2(d); });
+    el.addEventListener('change', recalcular);
+  });
+}
+function pintarM2(t){
+  var l = Number(t.querySelector('.v-largo').value) || 0;
+  var a = Number(t.querySelector('.v-ancho').value) || 0;
+  t.querySelector('.v-m2').textContent = (l*a).toFixed(2) + ' m²';
 }
 
-async function confirmarAgregarProducto() {
-  const errorEl = document.getElementById('np-error');
-  const successEl = document.getElementById('np-success');
-  errorEl.textContent = ''; successEl.textContent = '';
+function addAccesorio(){
+  var c = document.getElementById('accesorios');
+  var d = document.createElement('div');
+  d.className = 'tarjeta';
+  d.innerHTML =
+    '<button class="quitar" onclick="this.parentNode.remove();recalcular()">&times;</button>' +
+    '<div class="campo"><label>Descripción</label><input class="a-desc"></div>' +
+    '<div class="fila">' +
+      '<div class="campo"><label>Cantidad</label><input class="a-cant" type="number" inputmode="numeric" value="1"></div>' +
+      '<div class="campo"><label>Precio unitario</label>' +
+        '<div class="pesos"><input class="a-precio dinero" inputmode="decimal" value="0"></div></div>' +
+    '</div>';
+  c.appendChild(d);
+  activarDinero(d);
+  d.querySelectorAll('input').forEach(function(el){ el.addEventListener('change', recalcular); });
+}
+function addEspecial(){
+  var c = document.getElementById('especiales');
+  var d = document.createElement('div');
+  d.className = 'tarjeta';
+  d.innerHTML =
+    '<button class="quitar" onclick="this.parentNode.remove();recalcular()">&times;</button>' +
+    '<div class="campo"><label>Descripción del pedido especial</label>' +
+      '<input class="x-desc" placeholder="Puerta especial, gabinete especial, maniobra…"></div>' +
+    '<div class="fila">' +
+      '<div class="campo"><label>Cantidad</label><input class="x-cant" type="number" inputmode="numeric" value="1"></div>' +
+      '<div class="campo"><label>Precio unitario</label>' +
+        '<div class="pesos"><input class="x-precio dinero" inputmode="decimal" value="0"></div></div>' +
+    '</div>';
+  c.appendChild(d);
+  activarDinero(d);
+  d.querySelectorAll('input').forEach(function(el){ el.addEventListener('change', recalcular); });
+}
 
-  const payload = {
-    action: 'agregarProducto', pin: pinActual,
-    codigo: document.getElementById('np-codigo').value.trim(),
-    nombre: document.getElementById('np-nombre').value.trim(),
-    categoria: document.getElementById('np-categoria').value,
-    unidad: document.getElementById('np-unidad').value,
-    ubicacion: document.getElementById('np-ubicacion').value.trim(),
-    inventario_inicial: document.getElementById('np-inv-inicial').value,
-    inventario_minimo: document.getElementById('np-inv-minimo').value
+function addElectro(){
+  var c = document.getElementById('electro');
+  var d = document.createElement('div');
+  d.className = 'tarjeta';
+  d.innerHTML =
+    '<button class="quitar" onclick="this.parentNode.remove();recalcular()">&times;</button>' +
+    '<div class="campo"><label>Electrodoméstico</label><input class="e-desc"></div>' +
+    '<div class="fila">' +
+      '<div class="campo"><label>Cantidad</label><input class="e-cant" type="number" inputmode="numeric" value="1"></div>' +
+      '<div class="campo"><label>Costo unitario</label>' +
+        '<div class="pesos"><input class="e-precio dinero" inputmode="decimal" value="0"></div></div>' +
+    '</div>';
+  c.appendChild(d);
+  activarDinero(d);
+  d.querySelectorAll('input').forEach(function(el){ el.addEventListener('change', recalcular); });
+}
+
+function recolectar(){
+  var muebles = [];
+  document.querySelectorAll('#muebles .tarjeta').forEach(function(t){
+    muebles.push({
+      cat: t.querySelector('.m-cat').value,
+      var: t.querySelector('.m-var').value,
+      cantidad: t.querySelector('.m-cant').value,
+      modeloCajon: t.querySelector('.m-caj').value
+    });
+  });
+  var vistas = [];
+  document.querySelectorAll('#vistas .tarjeta').forEach(function(t){
+    vistas.push({
+      descripcion: t.querySelector('.v-desc').value,
+      largo: t.querySelector('.v-largo').value,
+      ancho: t.querySelector('.v-ancho').value
+    });
+  });
+  var accesorios = [];
+  document.querySelectorAll('#accesorios .tarjeta').forEach(function(t){
+    accesorios.push({
+      descripcion: t.querySelector('.a-desc').value,
+      cantidad: t.querySelector('.a-cant').value,
+      precioUnitario: limpiar(t.querySelector('.a-precio').value)
+    });
+  });
+  var especiales = [];
+  document.querySelectorAll('#especiales .tarjeta').forEach(function(t){
+    especiales.push({
+      descripcion: t.querySelector('.x-desc').value,
+      cantidad: t.querySelector('.x-cant').value,
+      precioUnitario: limpiar(t.querySelector('.x-precio').value)
+    });
+  });
+  var electrodomesticos = [];
+  document.querySelectorAll('#electro .tarjeta').forEach(function(t){
+    electrodomesticos.push({
+      descripcion: t.querySelector('.e-desc').value,
+      cantidad: t.querySelector('.e-cant').value,
+      precioUnitario: limpiar(t.querySelector('.e-precio').value)
+    });
+  });
+  function v(id){ return document.getElementById(id).value; }
+  return {
+    proyecto: v('proyecto'), cliente: v('cliente'), vendedor: VENDEDOR, detalles: v('detalles'),
+    mlCocina: v('mlCocina'),
+    diasFabricacionExtra: v('diasFabricacionExtra'),
+    diasInstalacionExtra: v('diasInstalacionExtra'),
+    viaticos: valorDinero('viaticos'),
+    muebles: muebles,
+    cuarzoPlacas: v('cuarzoPlacas'), cuarzoMl: v('cuarzoMl'),
+    zocloMl: v('zocloMl'),
+    vistas: vistas, accesorios: accesorios, especiales: especiales,
+    ledMl: v('ledMl'), tipoApagador: v('tipoApagador'),
+    precioApagador: valorDinero('precioApagador'), detallesLed: v('detallesLed'),
+    electrodomesticos: electrodomesticos
   };
-
-  if (!payload.codigo || !payload.nombre) { errorEl.textContent = "Código y nombre son obligatorios"; return; }
-
-  const resp = await llamarAPI(payload);
-  if (resp.ok) {
-    successEl.textContent = `✓ Producto "${resp.nombre}" agregado con código ${resp.codigo}`;
-    setTimeout(() => resetAgregar(), 1800);
-  } else {
-    errorEl.textContent = resp.error;
-  }
 }
+
+function recalcular(){
+  clearTimeout(calcTimer);
+  calcTimer = setTimeout(function(){
+    api('calcular', recolectar(), function(r){
+      ULTIMO = r;
+      document.getElementById('totalVivo').textContent = money(r.total);
+      var df = Math.round(r.dias.fabricacion * 10) / 10;
+      document.getElementById('verDiasFab').textContent =
+        df + (df === 1 ? ' día' : ' días');
+      document.getElementById('verDiasInst').textContent =
+        r.dias.instalacion + (r.dias.instalacion === 1 ? ' día' : ' días');
+      if(actual === PANTALLAS.length-1) pintarResumen();
+    }, function(msg){ avisoError('No se pudo calcular: ' + msg); });
+  }, 350);
+}
+
+function pintarResumen(){
+  if(!ULTIMO) return;
+  var r = ULTIMO;
+  var filas = [
+    ['Fabricación', money(r.fabricacion), false],
+    ['Electrodomésticos', money(r.electrodomesticos), false],
+    ['Subtotal', money(r.subtotal), false],
+    ['IVA', money(r.iva), false],
+    ['Total del proyecto', money(r.total), true],
+    ['Días de fabricación', (Math.round(r.dias.fabricacion*10)/10) + ' días', false],
+    ['Días de instalación', r.dias.instalacion + ' días', false],
+    ['Anticipo (60%)', money(r.anticipo), false],
+    ['Segundo pago (30%)', money(r.segundo), false],
+    ['Finiquito (10%)', money(r.finiquito), false],
+    ['Tu comisión', money(r.comision), false],
+    ['Muebles', r.conteo.muebles, false],
+    ['Bisagras', r.conteo.bisagras + ' pzas', false],
+    ['Cajones', r.conteo.cajones + ' pzas', false],
+    ['Vistas y mamparas', r.conteo.m2Vistas.toFixed(2) + ' m²', false]
+  ];
+  document.getElementById('detalleResumen').innerHTML = filas.map(function(f){
+    return '<div class="' + (f[2]?'grande':'') + '"><span>' + f[0] + '</span><span>' + f[1] + '</span></div>';
+  }).join('');
+}
+
+function guardar(){
+  document.getElementById('okGuardar').textContent = 'Guardando…';
+  api('guardarCotizacion', recolectar(), function(res){
+    document.getElementById('okGuardar').textContent = 'Guardada en la hoja "' + res.hoja + '".';
+    setTimeout(function(){ document.getElementById('okGuardar').textContent=''; }, 5000);
+  }, function(msg){
+    document.getElementById('okGuardar').textContent = '';
+    avisoError('No se pudo guardar: ' + msg);
+  });
+}
+
+document.querySelectorAll('#s0 input, #s3 input, #s4 input, #s8 input, #s8 select, #s8 textarea')
+  .forEach(function(el){ el.addEventListener('change', recalcular); });
 </script>
 </body>
 </html>
